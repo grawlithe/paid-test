@@ -35,7 +35,7 @@
                             @click="toggleDropdown"
                             class="inline-flex items-center px-4 py-2 text-xs font-semibold bg-gray-100 border rounded-md btn hover:bg-gray-200"
                         >
-                            Filter: {{ formatStatus(currentFilters?.status) || 'All' }}
+                            Status: {{ (currentFilters?.status) ? formatStatus(currentFilters?.status) : 'All' }}
                             <svg
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
@@ -71,6 +71,16 @@
                                     {{ formatStatus(status) || 'All' }}
                                 </li>
                             </ul>
+                        </div>
+                        <div>
+                            <TextInput
+                                id="search"
+                                type="search"
+                                class="block w-full mt-1"
+                                v-model="searchTerm"
+                                required
+                                placeholder="Search Title"
+                            />
                         </div>
                     </div>
 
@@ -120,7 +130,7 @@
                                 class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700"
                             >
                                 <tr
-                                    v-for="project in projects"
+                                    v-for="project in filteredProjects"
                                     :key="project.id"
                                 >
                                     <td class="px-6 py-4 whitespace-nowrap">
@@ -291,7 +301,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useForm, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Modal from "@/Components/Modal.vue";
@@ -301,23 +311,25 @@ import InputError from "@/Components/InputError.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
 import { router } from "@inertiajs/vue3";
+import { debounce } from "lodash";
 
 const props = defineProps({
     projects: {
         type: Array,
         required: true,
     },
-    filters: Object
+    filters: Object,
 });
 
 const statuses = ref(['not_started','in_progress','completed','on_hold']);
 const isDropdownOpen = ref(false); // To toggle the dropdown visibility
 
 const currentFilters = computed(() => props.filters);
+const searchTerm = ref("");
 
-const filterByStatus = (status) => {
-    router.get(route("projects.index"), { status }, { preserveState: true });
-};
+const filteredProjects = computed(() => {
+    return props.projects.filter((item) => item.title.toLowerCase().includes(searchTerm.value.toLowerCase()));
+});
 
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value;
