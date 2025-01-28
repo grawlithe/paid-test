@@ -17,7 +17,6 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->enum('status', ['not_started', 'in_progress', 'completed', 'on_hold']);
             $table->date('due_date');
-            $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
             $table->softDeletes();
         });

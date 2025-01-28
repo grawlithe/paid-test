@@ -9,15 +9,23 @@ use Inertia\Inertia;
 
 class ProjectController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $status = $request->get('status');
+
         $projects = Auth::user()->currentTeam->projects()
+            ->when($status && $status != 'all', function($query) use ($status){
+                $query->where('status', $status);
+            })
             ->withCount('tasks')
             ->latest()
             ->get();
 
         return Inertia::render('Projects/Index', [
             'projects' => $projects,
+            'filters' => [
+                'status' => $status,
+            ],
         ]);
     }
 
