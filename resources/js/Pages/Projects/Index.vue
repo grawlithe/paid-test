@@ -72,7 +72,7 @@
                                 </li>
                             </ul>
                         </div>
-                        <div>
+                        <div class="inline-flex ml-2">
                             <TextInput
                                 id="search"
                                 type="search"
