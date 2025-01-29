@@ -33,6 +33,7 @@ class TaskController extends Controller
             'status' => ['required', 'string', 'in:not_started,in_progress,completed'],
             'priority' => ['required', 'string', 'in:low,medium,high'],
             'completion_date' => ['nullable', 'date'],
+            'user_id' => ['nullable', 'integer']
         ]);
 
         $project->tasks()->create($validated);
@@ -52,6 +53,8 @@ class TaskController extends Controller
 
     public function update(Request $request, Task $task)
     {
+        //dd($task);
+
         $this->authorize('update', $task->project);
 
         $validated = $request->validate([
@@ -60,6 +63,7 @@ class TaskController extends Controller
             'status' => ['required', 'string', 'in:not_started,in_progress,completed'],
             'priority' => ['required', 'string', 'in:low,medium,high'],
             'completion_date' => ['nullable', 'date'],
+            'user_id' => ['nullable', 'integer']
         ]);
 
         if ($validated['status'] === 'completed' && ! $task->completion_date) {

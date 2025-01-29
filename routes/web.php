@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -27,4 +28,6 @@ Route::middleware([
     // Projects and Tasks routes
     Route::resource('projects', ProjectController::class);
     Route::resource('projects.tasks', TaskController::class)->shallow();
+
+    Route::get('/userteams/{team_id}', [UserController::class, 'getUserTeams'])->name('userteams');
 });

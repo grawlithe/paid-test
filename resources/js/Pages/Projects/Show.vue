@@ -463,6 +463,27 @@
                             />
                         </div>
 
+                        <div class="mt-4">
+                            <InputLabel for="user" value="User" />
+                            <select
+                                id="user"
+                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                v-model="taskForm.user_id"
+                                required
+                            >
+                                <option v-for="user in options"
+                                    :key="user.id"
+                                    :value="user.id"
+                                >
+                                    {{ user.name }}
+                                </option>
+                            </select>
+                            <InputError
+                                :message="taskForm.errors.user_id"
+                                class="mt-2"
+                            />
+                        </div>
+
                         <div class="mt-6 flex justify-end">
                             <SecondaryButton
                                 @click="closeTaskModal"
@@ -482,7 +503,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useForm, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Modal from "@/Components/Modal.vue";
@@ -492,6 +513,7 @@ import InputError from "@/Components/InputError.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
 import { router } from "@inertiajs/vue3";
+import axios from 'axios';
 
 const props = defineProps({
     project: {
@@ -516,63 +538,59 @@ const props = defineProps({
 
 const statuses = ref(['not_started','in_progress','completed']);
 const priority = ref(['low','medium','high']);
-const isDropdownOpen = ref(false); // To toggle the dropdown visibility
-const isPrioDropdownOpen = ref(false); // To toggle the dropdown visibility
+const isDropdownOpen = ref(false);
+const isPrioDropdownOpen = ref(false);
 
 const currentFilters = computed(() => props.filters);
 const searchTerm = ref("");
+const options = ref([]);
 
 const filteredTasks = computed(() => {
     return props.tasks.filter((item) => item.title.toLowerCase().includes(searchTerm.value.toLowerCase()) || item.description.toLowerCase().includes(searchTerm.value.toLowerCase()));
 });
 
 const toggleDropdown = () => {
-  isDropdownOpen.value = !isDropdownOpen.value;
+    isDropdownOpen.value = !isDropdownOpen.value;
 };
 const togglePrioDropdown = () => {
-  isPrioDropdownOpen.value = !isPrioDropdownOpen.value;
+    isPrioDropdownOpen.value = !isPrioDropdownOpen.value;
 };
 
 const selectStatus = (status) => {
-  isDropdownOpen.value = false; // Close the dropdown after selection
-  router.get(route("projects.show", props.project.id), { status }, { preserveState: true });
+    isDropdownOpen.value = false;
+    router.get(route("projects.show", props.project.id), { status }, { preserveState: true });
 };
 
 const selectPriority = (priority) => {
-  isPrioDropdownOpen.value = false; // Close the dropdown after selection
-  router.get(route("projects.show", props.project.id), { priority }, { preserveState: true });
+    isPrioDropdownOpen.value = false;
+    router.get(route("projects.show", props.project.id), { priority }, { preserveState: true });
 };
 
 
-// Sorting state
 const sortState = ref({
     column: '',
     direction: 'asc', // or 'desc'
 });
 
-// Computed property for sorted data
 const sortedData = computed(() => {
     const { column, direction } = sortState.value;
     if (!column) return filteredTasks.value;
 
     // Sort logic
     return [...filteredTasks.value].sort((a, b) => {
-    if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
-    if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
-    return 0;
+        if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
+        if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
+        return 0;
     });
 });
 
-// Sorting function
 const sortTable = (column) => {
     if (sortState.value.column === column) {
-    // Toggle direction if the same column is clicked
-    sortState.value.direction =
-        sortState.value.direction === 'asc' ? 'desc' : 'asc';
+        sortState.value.direction =
+            sortState.value.direction === 'asc' ? 'desc' : 'asc';
     } else {
-    // Set new column and default to ascending
-    sortState.value.column = column;
-    sortState.value.direction = 'asc';
+        sortState.value.column = column;
+        sortState.value.direction = 'asc';
     }
 };
 
@@ -584,6 +602,7 @@ const taskForm = useForm({
     status: "not_started",
     priority: "medium",
     completion_date: null,
+    user_id: null,
 });
 
 const createTask = () => {
@@ -598,6 +617,7 @@ const editTask = (task) => {
     taskForm.status = task.status;
     taskForm.priority = task.priority;
     taskForm.completion_date = task.completion_date;
+    taskForm.user_id = task.user_id;
     showTaskModal.value = true;
 };
 
@@ -629,17 +649,28 @@ const deleteTask = (task) => {
 };
 
 const markAsCompleted = (task) => {
-    taskForm.put(
-        route("tasks.update", task.id),
-        {
-            ...task,
-            status: "completed",
-            completion_date: new Date().toISOString().split("T")[0],
+    taskForm.id = task.id;
+    taskForm.title = task.title;
+    taskForm.description = task.description;
+    taskForm.status = "completed";
+    taskForm.priority = task.priority;
+    taskForm.completion_date = new Date().toISOString().split("T")[0];
+    taskForm.user_id = task.user_id;
+    
+    taskForm.put(route("tasks.update", task.id), {
+        preserveScroll: true,
+        onError: (errors) => {
+            console.error("Validation errors:", errors);
         },
-        {
-            preserveScroll: true,
-        }
-    );
+    });
+    // axios
+    //     .put(route("tasks.update", task.id), payload)
+    //     .then((response) => {
+    //         console.log("Task updated successfully:", response.data);
+    //     })
+    //     .catch((error) => {
+    //         console.error("Error updating task:", error.response?.data || error.message);
+    //     });
 };
 
 const formatStatus = (status) => {
@@ -652,4 +683,24 @@ const formatStatus = (status) => {
 const formatDate = (date) => {
     return new Date(date).toLocaleDateString();
 };
+
+
+const getTeamUsers = async () => {
+    const url = route("userteams", props.project.team_id);
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error("Failed to fetch data");
+        }
+        const data = await response.json();
+        //console.log(data);
+        options.value = data.map(user => ({ id: user.id, name: user.name }));
+    } catch (error) {
+        console.error("Error fetching data:", error);
+    }
+}
+
+onMounted(() => {
+    getTeamUsers();
+});
 </script>

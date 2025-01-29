@@ -329,7 +329,7 @@ const props = defineProps({
 });
 
 const statuses = ref(['not_started','in_progress','completed','on_hold']);
-const isDropdownOpen = ref(false); // To toggle the dropdown visibility
+const isDropdownOpen = ref(false);
 
 const currentFilters = computed(() => props.filters);
 const searchTerm = ref("");
@@ -343,40 +343,34 @@ const toggleDropdown = () => {
 };
 
 const selectStatus = (status) => {
-  isDropdownOpen.value = false; // Close the dropdown after selection
+  isDropdownOpen.value = false;
   router.get(route("projects.index"), { status }, { preserveState: true });
 };
 
 
-// Sorting state
 const sortState = ref({
     column: '',
     direction: 'asc', // or 'desc'
 });
 
-// Computed property for sorted data
 const sortedData = computed(() => {
     const { column, direction } = sortState.value;
     if (!column) return filteredProjects.value;
 
-    // Sort logic
     return [...filteredProjects.value].sort((a, b) => {
-    if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
-    if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
-    return 0;
+        if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
+        if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
+        return 0;
     });
 });
 
-// Sorting function
 const sortTable = (column) => {
     if (sortState.value.column === column) {
-    // Toggle direction if the same column is clicked
-    sortState.value.direction =
-        sortState.value.direction === 'asc' ? 'desc' : 'asc';
+        sortState.value.direction =
+            sortState.value.direction === 'asc' ? 'desc' : 'asc';
     } else {
-    // Set new column and default to ascending
-    sortState.value.column = column;
-    sortState.value.direction = 'asc';
+        sortState.value.column = column;
+        sortState.value.direction = 'asc';
     }
 };
 
