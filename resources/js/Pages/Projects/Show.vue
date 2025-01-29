@@ -139,6 +139,109 @@
                         </PrimaryButton>
                     </div>
 
+                    <!-- Dropdown for Status Filter -->
+                    <div class="relative inline-block mb-4 text-left">
+                        <button
+                            @click="toggleDropdown"
+                            class="inline-flex items-center px-4 py-2 text-xs font-semibold bg-gray-100 border rounded-md btn hover:bg-gray-200"
+                        >
+                            Status: {{ (currentFilters?.status) ? formatStatus(currentFilters?.status) : 'All' }}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="inline-block w-5 h-5 ml-2"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M6 9l6 6 6-6"
+                                />
+                            </svg>
+                        </button>
+                        <div
+                            v-if="isDropdownOpen"
+                            class="absolute left-0 z-10 w-40 mt-2 bg-white border border-gray-300 rounded shadow-md"
+                        >
+                            <ul>
+                                <li
+                                    class="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                    @click="selectStatus('all')"
+                                >
+                                    All
+                                </li>
+                                <li
+                                    v-for="status in statuses"
+                                    :key="status"
+                                    class="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                    @click="selectStatus(status)"
+                                >
+                                    {{ formatStatus(status) || 'All' }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <button
+                            @click="togglePrioDropdown"
+                            class="inline-flex items-center px-4 py-2 ml-2 text-xs font-semibold bg-gray-100 border rounded-md btn hover:bg-gray-200"
+                        >
+                            Priority: {{ (currentFilters?.priority) ? currentFilters?.priority.charAt(0).toUpperCase() + currentFilters?.priority.slice(1) : 'All' }}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="inline-block w-5 h-5 ml-2"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M6 9l6 6 6-6"
+                                />
+                            </svg>
+                        </button>
+                        <div
+                            v-if="isPrioDropdownOpen"
+                            class="absolute left-0 z-10 w-40 mt-2 bg-white border border-gray-300 rounded shadow-md"
+                        >
+                            <ul>
+                                <li
+                                    class="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                    @click="selectPriority('all')"
+                                >
+                                    All
+                                </li>
+                                <li
+                                    v-for="prio in priority"
+                                    :key="prio"
+                                    class="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                    @click="selectPriority(prio)"
+                                >
+                                    {{
+                                        prio
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                        prio.slice(1) || 'All'
+                                    }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="inline-flex ml-2">
+                            <TextInput
+                                id="search"
+                                type="search"
+                                class="block w-full mt-1"
+                                v-model="searchTerm"
+                                required
+                                placeholder="Search Title"
+                            />
+                        </div>
+                    </div>
+
                     <div v-if="tasks.length === 0" class="text-center py-12">
                         <div class="text-gray-500 dark:text-gray-400 mb-2">
                             No tasks found
@@ -184,7 +287,7 @@
                             <tbody
                                 class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
                             >
-                                <tr v-for="task in tasks" :key="task.id">
+                                <tr v-for="task in filteredProjects" :key="task.id">
                                     <td class="px-6 py-4">
                                         <div
                                             class="text-sm font-medium text-gray-900 dark:text-gray-100"
@@ -371,7 +474,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useForm, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Modal from "@/Components/Modal.vue";
@@ -380,6 +483,7 @@ import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
+import { router } from "@inertiajs/vue3";
 
 const props = defineProps({
     project: {
@@ -399,7 +503,37 @@ const props = defineProps({
         required: false,
         default: null,
     },
+    filters: Object,
 });
+
+const statuses = ref(['not_started','in_progress','completed']);
+const priority = ref(['low','medium','high']);
+const isDropdownOpen = ref(false); // To toggle the dropdown visibility
+const isPrioDropdownOpen = ref(false); // To toggle the dropdown visibility
+
+const currentFilters = computed(() => props.filters);
+const searchTerm = ref("");
+
+const filteredProjects = computed(() => {
+    return props.tasks.filter((item) => item.title.toLowerCase().includes(searchTerm.value.toLowerCase()) || item.description.toLowerCase().includes(searchTerm.value.toLowerCase()));
+});
+
+const toggleDropdown = () => {
+  isDropdownOpen.value = !isDropdownOpen.value;
+};
+const togglePrioDropdown = () => {
+  isPrioDropdownOpen.value = !isPrioDropdownOpen.value;
+};
+
+const selectStatus = (status) => {
+  isDropdownOpen.value = false; // Close the dropdown after selection
+  router.get(route("projects.show", props.project.id), { status }, { preserveState: true });
+};
+
+const selectPriority = (priority) => {
+  isPrioDropdownOpen.value = false; // Close the dropdown after selection
+  router.get(route("projects.show", props.project.id), { priority }, { preserveState: true });
+};
 
 const showTaskModal = ref(false);
 const taskForm = useForm({

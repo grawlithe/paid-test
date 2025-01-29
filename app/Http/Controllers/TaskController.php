@@ -13,6 +13,8 @@ class TaskController extends Controller
     {
         $this->authorize('view', $project);
 
+
+
         $tasks = $project->tasks()->latest()->get();
 
         return Inertia::render('Projects/Show', [

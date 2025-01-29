@@ -101,8 +101,12 @@
                                 <tr>
                                     <th
                                         class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase dark:text-gray-300"
+                                        @click="sortTable('title')"
                                     >
                                         Title
+                                        <span v-if="sortState.column === 'title'">
+                                            {{ sortState.direction === 'asc' ? '🔼' : '🔽' }}
+                                        </span>
                                     </th>
                                     <th
                                         class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase dark:text-gray-300"
@@ -111,8 +115,12 @@
                                     </th>
                                     <th
                                         class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase dark:text-gray-300"
+                                        @click="sortTable('due_date')"
                                     >
                                         Due Date
+                                        <span v-if="sortState.column === 'due_date'">
+                                            {{ sortState.direction === 'asc' ? '🔼' : '🔽' }}
+                                        </span>
                                     </th>
                                     <th
                                         class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase dark:text-gray-300"
@@ -130,7 +138,7 @@
                                 class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700"
                             >
                                 <tr
-                                    v-for="project in filteredProjects"
+                                    v-for="project in sortedData"
                                     :key="project.id"
                                 >
                                     <td class="px-6 py-4 whitespace-nowrap">
@@ -301,7 +309,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { useForm, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Modal from "@/Components/Modal.vue";
@@ -311,7 +319,6 @@ import InputError from "@/Components/InputError.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
 import { router } from "@inertiajs/vue3";
-import { debounce } from "lodash";
 
 const props = defineProps({
     projects: {
@@ -338,6 +345,39 @@ const toggleDropdown = () => {
 const selectStatus = (status) => {
   isDropdownOpen.value = false; // Close the dropdown after selection
   router.get(route("projects.index"), { status }, { preserveState: true });
+};
+
+
+// Sorting state
+const sortState = ref({
+    column: '',
+    direction: 'asc', // or 'desc'
+});
+
+// Computed property for sorted data
+const sortedData = computed(() => {
+    const { column, direction } = sortState.value;
+    if (!column) return filteredProjects.value;
+
+    // Sort logic
+    return [...filteredProjects.value].sort((a, b) => {
+    if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
+    if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
+    return 0;
+    });
+});
+
+// Sorting function
+const sortTable = (column) => {
+    if (sortState.value.column === column) {
+    // Toggle direction if the same column is clicked
+    sortState.value.direction =
+        sortState.value.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+    // Set new column and default to ascending
+    sortState.value.column = column;
+    sortState.value.direction = 'asc';
+    }
 };
 
 

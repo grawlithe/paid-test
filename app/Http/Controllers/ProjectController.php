@@ -43,12 +43,20 @@ class ProjectController extends Controller
         return redirect()->route('projects.index');
     }
 
-    public function show(Project $project)
+    public function show(Project $project, Request $request)
     {
         $this->authorize('view', $project);
 
-        $project->load(['tasks' => function ($query) {
-            $query->latest();
+        $status = $request->get('status');
+        $priority = $request->get('priority');
+
+        $project->load(['tasks' => function ($query) use ($status, $priority) {
+            $query->when($status && $status != 'all', function($query) use ($status){
+                $query->where('status', $status);
+            })
+            ->when($priority && $priority != 'all', function($query) use ($priority){
+                $query->where('priority', $priority);
+            })->latest();
         }]);
 
         return Inertia::render('Projects/Show', [
@@ -58,6 +66,10 @@ class ProjectController extends Controller
                 'total' => $project->tasks->count(),
                 'completed' => $project->tasks->where('status', 'completed')->count(),
             ],
+            'filters' => [
+                'status' => $status,
+                'priority' => $priority,
+            ]
         ]);
     }
 
