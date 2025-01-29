@@ -259,8 +259,12 @@
                                 <tr>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                                        @click="sortTable('title')"
                                     >
                                         Title
+                                        <span v-if="sortState.column === 'title'">
+                                            {{ sortState.direction === 'asc' ? '🔼' : '🔽' }}
+                                        </span>
                                     </th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -274,8 +278,12 @@
                                     </th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                                        @click="sortTable('completion_date')"
                                     >
                                         Completion Date
+                                        <span v-if="sortState.column === 'completion_date'">
+                                            {{ sortState.direction === 'asc' ? '🔼' : '🔽' }}
+                                        </span>
                                     </th>
                                     <th
                                         class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -287,7 +295,7 @@
                             <tbody
                                 class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
                             >
-                                <tr v-for="task in filteredProjects" :key="task.id">
+                                <tr v-for="task in sortedData" :key="task.id">
                                     <td class="px-6 py-4">
                                         <div
                                             class="text-sm font-medium text-gray-900 dark:text-gray-100"
@@ -514,7 +522,7 @@ const isPrioDropdownOpen = ref(false); // To toggle the dropdown visibility
 const currentFilters = computed(() => props.filters);
 const searchTerm = ref("");
 
-const filteredProjects = computed(() => {
+const filteredTasks = computed(() => {
     return props.tasks.filter((item) => item.title.toLowerCase().includes(searchTerm.value.toLowerCase()) || item.description.toLowerCase().includes(searchTerm.value.toLowerCase()));
 });
 
@@ -533,6 +541,39 @@ const selectStatus = (status) => {
 const selectPriority = (priority) => {
   isPrioDropdownOpen.value = false; // Close the dropdown after selection
   router.get(route("projects.show", props.project.id), { priority }, { preserveState: true });
+};
+
+
+// Sorting state
+const sortState = ref({
+    column: '',
+    direction: 'asc', // or 'desc'
+});
+
+// Computed property for sorted data
+const sortedData = computed(() => {
+    const { column, direction } = sortState.value;
+    if (!column) return filteredTasks.value;
+
+    // Sort logic
+    return [...filteredTasks.value].sort((a, b) => {
+    if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
+    if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
+    return 0;
+    });
+});
+
+// Sorting function
+const sortTable = (column) => {
+    if (sortState.value.column === column) {
+    // Toggle direction if the same column is clicked
+    sortState.value.direction =
+        sortState.value.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+    // Set new column and default to ascending
+    sortState.value.column = column;
+    sortState.value.direction = 'asc';
+    }
 };
 
 const showTaskModal = ref(false);
